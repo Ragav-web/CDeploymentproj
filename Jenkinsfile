@@ -6,7 +6,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/CDeploymentproj.git'
+                git branch: 'main', url: 'https://github.com/Ragav-web/CDeploymentproj.git'
             }
         }
         stage('Deploy to Kubernetes') {
