@@ -1,13 +1,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: helloapp
+  name: hello-app-service
 spec:
+  type: NodePort
   selector:
-    app: helloapp
+    app: hello-app
   ports:
-    - protocol: TCP
-      port: 85          # Exposed service port
-      targetPort: 3000  # Container port
-  type: ClusterIP
-
+   - port: 85
+     targetPort: 8080

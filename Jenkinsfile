@@ -1,47 +1,40 @@
 pipeline {
     agent any
-    environment {
-        KUBECONFIG_PATH = '/home/santhasoruban/.kube/config'
-    }
+ 
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/Ragav-web/CDeploymentproj.git'
+                git branch: 'master', url: 'git@github.com:Ragav-web/CDeploymentproj.git', credentialsId: 'a9739d61-17f0-4800-8386-f8a12eb1fc3f'
             }
         }
+ 
         stage('Deploy to Kubernetes') {
             steps {
                 script {
-                    // Configure kubeconfig for kubectl in Minikube
-                    withKubeConfig([kubeConfig: KUBECONFIG_PATH]) {
-                        sh 'kubectl apply -f deployment.yaml'
-                        sh 'kubectl apply -f services.yaml'
+                    env.KUBECONFIG = "C:\\Users\\santhasoruban_s\\.kube\\config"
+                    withCredentials([string(credentialsId: 'secrets', variable: 'SECRET_VALUE')]) {
+                        bat """
+                            powershell.exe minikube config set-context minikube
+                            powershell.exe kubectl apply -f deployment.yaml --validate=false
+                            powershell.exe kubectl apply -f service.yaml --validate=false
+                        """
                     }
                 }
             }
         }
-        stage('Test Application') {
+ 
+        stage('Test') {
             steps {
                 script {
-                    sleep(10) // Wait for Kubernetes objects to start
-                    sh '''
-                        STATUS=$(kubectl get pods -l app=helloapp -o jsonpath="{.items[0].status.phase}")
-                        if [ "$STATUS" != "Running" ]; then
-                            echo "Error: Pod is not running"
-                            exit 1
-                        fi
-                    '''
+                    env.KUBECONFIG = "C:\\Users\\santhasoruban_s\\.kube\\config"
+                    withCredentials([string(credentialsId: 'secrets', variable: 'SECRET_VALUE')]) {
+                        bat '''
+                            powershell "kubectl get pods"
+                            powershell "Invoke-WebRequest -UseBasicParsing http://127.0.0.1:58820"
+                        '''
+                    }
                 }
-                echo 'Pod is running successfully!'
             }
-        }
-    }
-    post {
-        success {
-            echo 'Deployment and testing successful!'
-        }
-        failure {
-            echo 'Deployment or testing failed!'
         }
     }
 }
