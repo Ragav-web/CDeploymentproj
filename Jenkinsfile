@@ -1,63 +1,47 @@
 pipeline {
     agent any
-
     environment {
-        DOCKER_IMAGE = "<your-dockerhub-username>/helloweb:latest"
+        KUBECONFIG_PATH = '/home/santhasoruban/.kube/config' 
     }
-
     stages {
-        stage('Checkout Code') {
+        stage('Checkout') {
             steps {
-                checkout scm
+                git branch: 'main', url: 'https://github.com/CDeploymentproj.git'
             }
         }
-
-        stage('Build Docker Image') {
-            steps {
-                sh 'docker build -t ${DOCKER_IMAGE} .'
-            }
-        }
-
-        stage('Push to DockerHub') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
-                    sh 'docker push ${DOCKER_IMAGE}'
-                }
-            }
-        }
-
         stage('Deploy to Kubernetes') {
             steps {
-                sh 'kubectl apply -f deployment.yaml'
-                sh 'kubectl apply -f service.yaml'
-            }
-        }
-
-        stage('Verify Deployment') {
-            steps {
-                sh 'kubectl rollout status deployment/helloweb'
-                sh 'kubectl get pods'
-            }
-        }
-
-        stage('Test Service') {
-            steps {
                 script {
-                    def clusterIP = sh(script: "kubectl get svc helloweb -o jsonpath='{.spec.clusterIP}'", returnStdout: true).trim()
-                    def port = sh(script: "kubectl get svc helloweb -o jsonpath='{.spec.ports[0].port}'", returnStdout: true).trim()
-                    sh "curl --fail --silent --show-error http://${clusterIP}:${port}"
+                    // Configure kubeconfig for kubectl in Minikube
+                    withKubeConfig([kubeConfig: KUBECONFIG_PATH]) {
+                        sh 'kubectl apply -f deployment.yaml'
+                        sh 'kubectl apply -f services.yaml'
+                    }
                 }
             }
         }
+        stage('Test Application') {
+            steps {
+                script {
+                    sleep(10) // Wait for Kubernetes objects to start
+                    sh '''
+                        STATUS=$(kubectl get pods -l app=helloapp -o jsonpath="{.items[0].status.phase}")
+                        if [ "$STATUS" != "Running" ]; then
+                            echo "Error: Pod is not running"
+                            exit 1
+                        fi
+                    '''
+                }
+                echo 'Pod is running successfully!'
+            }
+        }
     }
-
     post {
         success {
-            echo "Deployment successful!"
+            echo 'Deployment and testing successful!'
         }
         failure {
-            echo "Pipeline failed. Check logs."
+            echo 'Deployment or testing failed!'
         }
     }
 }
