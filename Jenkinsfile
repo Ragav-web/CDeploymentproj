@@ -4,15 +4,6 @@ pipeline {
         KUBECONFIG_PATH = '/home/santhasoruban/.kube/config'
     }
     stages {
-        stage('Install kubectl') {
-            steps {
-                script {
-                    sh 'curl -LO "https://storage.googleapis.com/kubernetes-release/release/v1.27.3/bin/linux/amd64/kubectl"'
-                    sh 'chmod +x ./kubectl'
-                    sh 'mv ./kubectl /usr/local/bin/kubectl'
-                }
-            }
-        }
         stage('Checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/Ragav-web/CDeploymentproj.git'
@@ -54,4 +45,3 @@ pipeline {
         }
     }
 }
-
